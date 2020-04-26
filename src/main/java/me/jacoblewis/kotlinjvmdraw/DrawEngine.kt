@@ -1,6 +1,9 @@
 package me.jacoblewis.kotlinjvmdraw
 
-import java.awt.*
+import java.awt.Color
+import java.awt.Font
+import java.awt.Graphics2D
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
@@ -18,7 +21,7 @@ object DrawEngine {
         return java.awt.Color(r, g, b)
     }
 
-    private fun convertToBytes(bi: BufferedImage): ByteArray {
+    fun convertToBytes(bi: BufferedImage): ByteArray {
         // Convert to bytes
         val baos = ByteArrayOutputStream()
         ImageIO.write(bi, "png", baos)
@@ -29,17 +32,22 @@ object DrawEngine {
         return bytes
     }
 
-    fun draw(width: Number, height: Number, backgroundColor: Color, block: DrawRectBuilder.() -> Unit): ByteArray {
+    fun draw(width: Number, height: Number, backgroundColor: Color, block: DrawRectBuilder.() -> Unit): BufferedImage {
         val bi = BufferedImage(width.toInt(), height.toInt(), BufferedImage.TYPE_INT_ARGB)
         val canvas = initG2D(bi)
         val builder = DrawRectBuilder(0, 0, width.toInt(), height.toInt(), backgroundColor)
         builder.block()
         builder.render(canvas, 0, 0)
         builder.renderElements(canvas, 0, 0)
-        return convertToBytes(bi)
+        return bi
     }
 
     open class DrawRectBuilder(x: Int, y: Int, var width: Int, var height: Int, var color: Color) : Drawable(x, y) {
+        val centerX: Int
+            get() = width / 2
+        val centerY: Int
+            get() = height / 2
+
         override fun render(canvas: Graphics2D, x: Int, y: Int) {
             canvas.color = color
             canvas.fillRect(x + this.x, y + this.y, width, height)
@@ -53,6 +61,20 @@ object DrawEngine {
         }
     }
 
+    open class DrawTextBuilder(var text: String, x: Int, y: Int, var fontSize: Int = 12, var fontName: String, var fontStyle: Int, var color: Color, var centered: Boolean) : Drawable(x, y) {
+        override fun render(canvas: Graphics2D, x: Int, y: Int) {
+            val font = Font(fontName, fontStyle, fontSize)
+            canvas.color = color
+            canvas.font = font
+            if (centered) {
+                val offsetX = canvas.fontMetrics.stringWidth(text) / 2
+                canvas.drawString(text, x + this.x - offsetX, y + this.y - fontSize / 2)
+            } else {
+                canvas.drawString(text, x + this.x, y + this.y)
+            }
+        }
+    }
+
     abstract class Drawable(var x: Int, var y: Int) {
         val elements: MutableList<Drawable> = mutableListOf()
         abstract fun render(canvas: Graphics2D, x: Int, y: Int)
@@ -63,48 +85,23 @@ object DrawEngine {
             }
         }
 
-        fun rect(x: Number = 0, y: Number = 0, width: Number = 10, height: Number = 10, color: Color, block: (DrawRectBuilder.() -> Unit)? = null) {
-            val b = DrawRectBuilder(x.toInt(), y.toInt(), width.toInt(), height.toInt(), color)
+        fun rect(x: Number = 0, y: Number = 0, width: Number = 100, height: Number = 100, centered: Boolean = false, color: Color = Color.BLACK, block: (DrawRectBuilder.() -> Unit)? = null) {
+            val b = DrawRectBuilder(x.toInt() - if (centered) (width.toFloat() / 2).toInt() else 0, y.toInt() - if (centered) (height.toFloat() / 2).toInt() else 0, width.toInt(), height.toInt(), color)
             elements.add(b)
             block?.invoke(b)
         }
-        fun oval(x: Number = 0, y: Number = 0, width: Number = 10, height: Number = 10, color: Color, block: (DrawOvalBuilder.() -> Unit)? = null) {
-            val b = DrawOvalBuilder(x.toInt(), y.toInt(), width.toInt(), height.toInt(), color)
+
+        fun oval(x: Number = 0, y: Number = 0, width: Number = 100, height: Number = 100, centered: Boolean = true, color: Color = Color.BLACK, block: (DrawOvalBuilder.() -> Unit)? = null) {
+            val b = DrawOvalBuilder(x.toInt() - if (centered) (width.toFloat() / 2).toInt() else 0, y.toInt() - if (centered) (height.toFloat() / 2).toInt() else 0, width.toInt(), height.toInt(), color)
             elements.add(b)
             block?.invoke(b)
         }
-    }
 
-    fun createCompoundTextBadge(labels: List<String>, backgroundColor: List<Color> = listOf(Color(21, 101, 192), Color(90, 200, 200))): ByteArray {
-
-        val font = Font("SansSerif", Font.BOLD, 12)
-        val tempBi = BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB)
-        val tempGra = tempBi.createGraphics()
-        tempGra.font = font
-        // Params
-        val paddingX = 8
-        val paddingY = 5
-        val textWidths = labels.map { tempGra.fontMetrics.stringWidth(it) + 2 * paddingX }
-        val textHeight = tempGra.fontMetrics.height
-
-        // Start Drawing
-
-
-//        // Background with Shadow
-//        textWidths.foldIndexed(0) { i, x, cWidth ->
-//            roundedRectWithShadow(gra, Rectangle(x, 0, bi.width - x, bi.height), backgroundColor[i % backgroundColor.size], leadingSquare = i != 0)
-//
-//            gra.font = font
-//            val tX = paddingX + x
-//            val y = bi.height - paddingY - 3
-//
-//            // Label with Shadow
-//            labelWithShadow(gra, labels[i], tX, y)
-//            return@foldIndexed x + cWidth
-//        }
-//
-//        return convertToBytes(bi)
-        TODO()
+        fun text(text: String, x: Number = 0, y: Number = 0, fontSize: Int = 12, color: Color = Color.BLACK, fontName: String = "SansSerif", fontStyle: Int = Font.BOLD, centered: Boolean = true, block: (DrawTextBuilder.() -> Unit)? = null) {
+            val b = DrawTextBuilder(text, x.toInt(), y.toInt(), fontSize, fontName, fontStyle, color, centered)
+            elements.add(b)
+            block?.invoke(b)
+        }
     }
 
     private fun initG2D(bi: BufferedImage): Graphics2D {
@@ -115,23 +112,4 @@ object DrawEngine {
         return gra
     }
 
-    private fun roundedRectWithShadow(gra: Graphics2D, rect: Rectangle, backgroundColor: java.awt.Color, leadingSquare: Boolean = false) {
-        gra.color = backgroundColor.darker()
-        gra.fillRoundRect(rect.x, rect.y, rect.width, rect.height, 10, 10)
-        gra.color = backgroundColor
-        gra.fillRoundRect(rect.x, rect.y, rect.width, rect.height - 1, 10, 10)
-        if (leadingSquare) {
-            gra.color = backgroundColor.darker()
-            gra.fillRect(rect.x, rect.y, 10, rect.height)
-            gra.color = backgroundColor
-            gra.fillRect(rect.x, rect.y, 10, rect.height - 1)
-        }
-    }
-
-    private fun labelWithShadow(gra: Graphics2D, label: String, x: Int, y: Int, color: java.awt.Color = java.awt.Color.WHITE) {
-        gra.color = color.darker()
-        gra.drawString(label, x + 0.1f, y + 0.5f)
-        gra.color = color
-        gra.drawString(label, x, y)
-    }
 }
