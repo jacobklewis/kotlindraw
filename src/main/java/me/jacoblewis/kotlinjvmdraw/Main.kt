@@ -13,16 +13,15 @@ fun main() {
     val TEST_FRAME: Int? = 50
     val SAVE_AS_MP4 = true
 
-    val animationLengthSeconds = 4
-    val animationFPS = 60
-    val animationFrames = animationLengthSeconds * animationFPS
+    val ANIMATION_LENGTH_SECONDS = 4
+    val FPS = 60
+    val TOTAL_FRAMES = ANIMATION_LENGTH_SECONDS * FPS
 
-    val animatedValueStart = 0
-    val animatedValueEnd = 50
+    val ANIMATED_VALUES = 0 to 50
 
     fun renderFrame(frame: Int): BufferedImage {
-        val frameProgress = expoInterpolator(frame / animationFrames.toFloat(), 2)
-        val currentAnimatedValue = frameProgress * animatedValueEnd + (1 - frameProgress) * animatedValueStart
+        val frameProgress = expoInterpolator(frame / TOTAL_FRAMES.toFloat(), 2)
+        val currentAnimatedValue = frameProgress * ANIMATED_VALUES.second + (1 - frameProgress) * ANIMATED_VALUES.first
 
         return DrawEngine.draw(854, 480, Color.WHITE) {
 
@@ -48,7 +47,7 @@ fun main() {
     } else {
         val out = NIOUtils.writableFileChannel("animation.mp4")
         val encoder = AWTSequenceEncoder(out, Rational.R(30, 1))
-        for (frame in 0 until animationFrames) {
+        for (frame in 0 until TOTAL_FRAMES) {
             val image = renderFrame(frame)
             println("Saving frame: $frame")
             if (SAVE_AS_MP4) {

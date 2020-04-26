@@ -10,16 +10,17 @@ import javax.imageio.ImageIO
 
 object DrawEngine {
 
-    private fun convertHexToColor(hex: String): Color {
-        val strippedHex = hex.removePrefix("#").trim()
-        if (strippedHex.length < 6) {
-            return java.awt.Color(0, 0, 0)
+    val String.asColor: Color
+        get() {
+            val strippedHex = this.removePrefix("#").filter { it.isDigit() || listOf('a', 'b', 'c', 'd', 'e', 'f').contains(it.toLowerCase()) }.trim()
+            if (strippedHex.length != 6) {
+                return Color(0, 0, 0)
+            }
+            val r = strippedHex.substring(0, 2).toInt(16)
+            val g = strippedHex.substring(2, 4).toInt(16)
+            val b = strippedHex.substring(4, 6).toInt(16)
+            return Color(r, g, b)
         }
-        val r = strippedHex.substring(0, 2).toInt(16)
-        val g = strippedHex.substring(2, 4).toInt(16)
-        val b = strippedHex.substring(4, 6).toInt(16)
-        return java.awt.Color(r, g, b)
-    }
 
     fun convertToBytes(bi: BufferedImage): ByteArray {
         // Convert to bytes
