@@ -1,5 +1,6 @@
 package me.jacoblewis.kotlinjvmdraw
 
+import me.jacoblewis.kotlinjvmdraw.DrawEngine.asColor
 import org.jcodec.api.awt.AWTSequenceEncoder
 import org.jcodec.common.io.NIOUtils
 import org.jcodec.common.model.Rational
@@ -9,7 +10,7 @@ import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.*
 
-val TEST_FRAME: Int? = 50
+
 val SAVE_AS_MP4 = true
 
 val ANIMATION_LENGTH_SECONDS = 4
@@ -48,22 +49,55 @@ fun renderFrame(frame: Int): BufferedImage {
 
 
 
-fun renderFrame(frame: Int, currentAnimatedValue: Float): BufferedImage {
-    return DrawEngine.draw(854, 480, Color.WHITE) {
+
+
+
+val TEST_FRAME: Int? = 150
+
+
+
+
+
+
+
+
+
+val RED = "f44336".asColor
+val PINK = "e91e63".asColor
+val PURPLE = "9c27b0".asColor
+val BLUE = "2196f3".asColor
+val GREEN = "4caf50".asColor
+val YELLOW = "ffeb3b".asColor
+val ORANGE = "ff9800".asColor
+
+
+
+
+fun renderFrame(frame: Int, currentValue: Float): BufferedImage {
+    return DrawEngine.draw(2880, 1440, Color.WHITE) {
         val radius = height / 3.5
         val steps = 0..50
         for (i in steps) {
             val angle = 2 * PI / steps.last * i
-            val radiusMod = (abs(cos(angle)).pow(currentAnimatedValue.toDouble()) + sin(angle)) * radius
+            val radiusMod = (abs(cos(angle)).pow(currentValue.toDouble()) + sin(angle)) * radius
             val x = cos(angle) * radiusMod + centerX
             val y = -sin(angle) * radiusMod + centerY + height / 8
 
             oval(x, y, 10, 10)
         }
 
-        text("Frame: $frame", centerX, height - height / 10, height / 12)
+        text("i: $currentValue", x = centerX - height / 4, y = height - height / 10, fontSize = height / 12, centered = false)
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 
